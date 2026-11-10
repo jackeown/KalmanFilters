@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D Kalman Filter Visualizer</title>
+<link rel="stylesheet" href="vendor/katex.min.css">
+<style>
+:root{color-scheme:dark;--bg:#0b0f19;--panel:#0f172a;--card:#080f20;--border:#26344a;--text:#f1f5f9;--muted:#9eacc0;--cyan:#22d3ee;--amber:#fbbf24;--purple:#c084fc;--green:#34d399}
+*{box-sizing:border-box}html{height:100%;overflow:hidden;overscroll-behavior:none}body{height:100dvh;display:flex;flex-direction:column;overflow:hidden;margin:0;background:var(--bg);color:var(--text);font:13px system-ui,sans-serif}body.light{color-scheme:light;--bg:#eef2f7;--panel:#fff;--card:#f1f5f9;--border:#ccd6e3;--text:#142139;--muted:#516078;--cyan:#007b91;--amber:#946000;--purple:#8640bc;--green:#087950}
+button,input{font:inherit}button,summary{cursor:pointer}button{background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:7px;padding:8px 12px}button:hover{border-color:var(--cyan)}button:disabled{opacity:0.45;cursor:default}button:focus-visible,summary:focus-visible,input:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}.primary{background:#087f96;color:white}header{flex:0 0 auto;padding:15px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--border);background:var(--panel)}h1{font-size:17px;margin:0 0 4px}p{margin:0;line-height:1.5}.muted,small{color:var(--muted)}.actions{display:flex;gap:7px;flex-wrap:wrap}.app{display:grid;grid-template-columns:minmax(0,1fr) 400px;grid-template-rows:minmax(0,1fr);flex:1 1 0;min-height:0;min-width:0;overflow:hidden;contain:layout paint}.viewport{position:relative;min-width:0;min-height:0;overflow:hidden}#canvas-container{position:absolute;inset:0}canvas{display:block;touch-action:none}.scene-top{position:absolute;top:16px;left:16px;right:16px;pointer-events:none;display:flex;align-items:start;justify-content:space-between;gap:10px;flex-wrap:wrap}.badge,.camera-help{background:var(--panel);border:1px solid var(--border);padding:8px 12px;border-radius:8px;font-size:11px}.badge{color:var(--cyan);min-width:200px}.badge.correction{color:var(--amber)}.overlays{position:absolute;bottom:16px;left:16px;right:16px;display:flex;justify-content:space-between;align-items:end;gap:12px;pointer-events:none}.overlay{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px;pointer-events:auto;width:245px;box-shadow:0 8px 25px #0002}.overlay summary{font-weight:650}.overlay-content{padding-top:12px}.legend-row{display:flex;align-items:center;gap:8px;margin-bottom:9px;font-size:11px}.dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;background:currentColor}.green{color:var(--green)}.amber{color:var(--amber)}.cyan{color:var(--cyan)}.purple{color:var(--purple)}.red{color:#f87171}label{display:block;font-size:11px;margin-bottom:13px}label span{display:flex;justify-content:space-between;gap:8px;margin-bottom:7px}input[type=range]{width:100%;accent-color:var(--cyan)}output,.mono,.matrix{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-variant-numeric:tabular-nums}.hud{position:relative;background:var(--panel);border-left:1px solid var(--border);min-height:0;overflow:auto;overscroll-behavior:contain;padding:16px;display:flex;flex-direction:column;gap:12px}.hud>*{flex-shrink:0}.hud h2{font-size:14px;margin:0}.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px}.card summary{font-weight:600;font-size:12px}.card-content{padding-top:12px;min-width:0}.formula{font-size:12px;overflow-x:auto;padding:5px 0}.katex{font-size:1.04em}.matrix-wrap{display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 0;overflow-x:auto}.matrix{border-left:2px solid var(--muted);border-right:2px solid var(--muted);border-radius:3px;padding:3px 10px;display:grid;gap:7px 13px;font-size:11px;text-align:right}.matrix span{min-width:55px;white-space:nowrap}.rows{display:grid;gap:7px;font:10px ui-monospace,monospace;color:var(--muted);text-align:right}.two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px}.sub{border-top:1px solid var(--border);padding-top:10px;margin-top:10px}.sub summary{font-size:11px}.stats{display:flex;justify-content:space-between;gap:6px;font-size:11px;margin-top:10px}.error{position:absolute;inset:80px 20px auto;background:var(--panel);padding:20px;border:1px solid var(--amber);border-radius:10px;z-index:3}.error[hidden]{display:none}::-webkit-scrollbar{width:7px;height:5px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:5px}
+@media(min-width:1500px){.app{grid-template-columns:minmax(0,1fr) 450px}}@media(max-width:1050px){.app{grid-template-columns:minmax(0,1fr) 350px}.overlays{flex-direction:column;align-items:start}.overlay{width:225px}.camera-help{display:none}}@media(max-width:760px){header{padding:12px}.app{display:flex;flex-direction:column;overflow:auto;overscroll-behavior:contain}.viewport{height:650px;flex:none}.hud{flex:0 0 auto;overflow:visible;border-left:0;border-top:1px solid var(--border)}.overlays{flex-direction:row;align-items:end;left:10px;right:10px;bottom:10px;gap:8px}.overlay{width:50%;padding:10px}.legend-row{font-size:10px;gap:5px}.scene-top{left:10px;right:10px;top:10px}.badge{min-width:0}.two-col{gap:5px}.matrix{gap:7px 8px;padding:3px 6px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+
+/* Whole heading rows are comfortable mouse and touch targets. */
+summary{min-height:42px;padding:12px 8px;margin:-4px -4px;line-height:1.5;border-radius:6px}summary:hover{background:color-mix(in srgb,var(--cyan) 8%,transparent)}
+#sliderQ{accent-color:var(--green)}#sliderR{accent-color:var(--amber)}#sliderSpeed{accent-color:var(--cyan)}
+label:has(#sliderQ){color:var(--green)}label:has(#sliderR){color:var(--amber)}label:has(#sliderSpeed){color:var(--cyan)}
+select{background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:9px;max-width:100%}.drive-actions{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.drive-actions button{font-size:11px;padding:8px}.input-log{width:100%;border-collapse:collapse;font:10px ui-monospace,monospace;margin-top:10px}.input-log th,.input-log td{text-align:right;padding:6px 3px;border-bottom:1px solid var(--border)}.input-log th{color:var(--muted)}.compact-matrix .matrix span{min-width:42px}.note{font-size:11px;color:var(--muted);margin:8px 0}.drive-pad{display:flex;gap:5px;margin-top:8px}.drive-pad button{touch-action:none;flex:1;padding:10px 6px}.drive-pad button.active{background:var(--cyan);color:var(--bg)}
+
+.camera-tools{pointer-events:auto;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px;max-width:340px;box-shadow:0 4px 16px #0002}.camera-tools .toolbar{display:flex;gap:5px;flex-wrap:wrap;align-items:center}.camera-tools button{min-height:36px;padding:7px 10px;font-size:11px}.camera-tools button[aria-pressed=true]{color:var(--cyan);border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 14%,var(--panel))}.camera-tools p{font-size:10px;color:var(--muted);margin-top:8px}.camera-tools .toolbar+.toolbar{margin-top:6px}.camera-tools .mode-label{font-size:11px;margin-right:4px}canvas.dragging{cursor:grabbing!important}
+@media(max-width:760px){.scene-top{gap:8px}.camera-tools{max-width:100%;padding:8px}.camera-tools button{min-height:34px;padding:6px 9px}.camera-tools p{margin-top:5px}.scene-top>div:first-child{display:flex;flex-wrap:wrap;gap:4px}.badge{font-size:10px;padding:6px 8px}.viewport{height:740px}}
+.scene-top>div,.overlays>.overlay{opacity:0.7;transition:opacity 0.15s ease}.scene-top>div:hover,.scene-top>div:focus-within,.overlays>.overlay:hover,.overlays>.overlay:focus-within{opacity:0.9}
+#btnFocusCar[aria-pressed=true]{box-shadow:inset 0 2px 6px #0009;transform:translateY(1px)}
+
+summary{position:relative;padding-right:40px!important}.help-button{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;min-height:24px!important;padding:0!important;border-radius:50%;color:var(--muted);font-size:12px;font-weight:700;background:var(--panel)}.help-button:hover{color:var(--cyan);border-color:var(--cyan)}
+#helpDialog{color:var(--text);background:var(--panel);border:1px solid var(--border);border-radius:14px;width:min(580px,calc(100% - 28px));max-height:85dvh;padding:24px;box-shadow:0 24px 90px #0008}#helpDialog::backdrop{background:#0009;backdrop-filter:blur(2px)}.help-header{display:flex;align-items:start;justify-content:space-between;gap:18px;margin-bottom:16px}.help-header h2{font-size:19px;margin:0}.help-header button{flex-shrink:0}#helpContent p{font-size:14px;line-height:1.7;margin:12px 0}#helpContent h3{font-size:13px;color:var(--cyan);margin:20px 0 8px}.help-cycle{color:var(--muted);font-size:11px;border-top:1px solid var(--border);padding-top:14px;margin-top:20px}
+
+#qDialog{color:var(--text);background:var(--panel);border:1px solid var(--border);border-radius:14px;width:min(620px,calc(100% - 28px));max-height:90dvh;padding:22px;box-shadow:0 24px 90px #0008}#qDialog::backdrop{background:#0009;backdrop-filter:blur(2px)}.q-table{width:100%;border-collapse:collapse;font-size:11px;margin:16px 0}.q-table th,.q-table td{padding:7px 3px;text-align:left}.q-table input{width:100%;min-width:0;padding:8px 5px;color:var(--text);background:var(--card);border:1px solid var(--border);border-radius:5px;font:11px ui-monospace,monospace}.q-table th:first-child{width:24%}.q-table td{width:25%}#qFullMatrix{width:100%;height:240px;resize:vertical;background:var(--card);color:var(--text);font:11px ui-monospace,monospace;padding:10px;border:1px solid var(--border);border-radius:6px}#qEditorError{color:#fb7185;font-size:12px;min-height:18px;margin:12px 0}.q-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}#qEditorSimple[hidden],#qEditorFull[hidden]{display:none}
+.slider-help{width:100%;border-collapse:collapse;table-layout:fixed;font-size:13px;line-height:1.6}.slider-help th,.slider-help td{text-align:left;vertical-align:top;padding:12px 8px;border-bottom:1px solid var(--border);overflow-wrap:break-word}.slider-help thead th{color:var(--muted);font-size:11px;padding-top:0}.slider-help th:first-child{width:25%}.slider-help tbody th{font-weight:600}.slider-help tr:last-child td,.slider-help tbody tr:last-child th{border-bottom:0}
+</style>
+</head>
+<body>
+<header id="header"><div><h1><span class="cyan">◈</span> Kalman Filter 3D Visualizer</h1><p class="muted">A 2D position, velocity & acceleration model in a 3D scene</p></div><div class="actions"><button id="btnThemeToggle">☾ Dark</button><button id="btnPlayPause" class="primary">Pause</button><button id="btnStep" title="Pause and advance one prediction or correction phase">Step</button><button id="btnReset">Reset</button><button id="btnCamera" title="Restore the camera view">Center view</button></div></header>
+<main class="app">
+<section class="viewport" aria-label="3D simulation">
+<div id="canvas-container"></div><div id="error" class="error" role="alert" hidden></div>
+<div class="scene-top"><div><div id="phaseBadge" class="badge">READY · Next: prediction</div><div class="badge mono" id="clock">t = 0.0 s · cycle 0</div></div><div class="camera-tools" aria-label="Camera controls"><div class="toolbar" role="group" aria-label="Drag mode"><span class="mode-label">Drag to</span><button id="btnPanMode" aria-pressed="false" title="Drag to move across the ground">✥ Pan</button><button id="btnOrbitMode" aria-pressed="true" title="Drag to rotate around the view center">↻ Orbit</button><button id="btnZoomIn" aria-label="Zoom in" title="Zoom in">+</button><button id="btnZoomOut" aria-label="Zoom out" title="Zoom out">−</button></div><div class="toolbar"><button id="btnFocusCar" aria-pressed="false" title="Toggle continuous car follow. Orbit to adjust the angle; pan to release.">Center on car</button><button id="btnTopView" title="Look straight down at the current view center">Top view</button><button id="btnResetView" title="Restore the full track and camera angle">Reset view</button></div><p id="cameraHint">Drag / right-drag to orbit · Shift-drag to pan · Scroll to zoom</p><p id="touchHint">Touch: one finger orbits · two fingers zoom and pan</p></div></div>
+<div class="overlays">
+<details open class="overlay"><summary data-help="legend">Visual legend</summary><div class="overlay-content"><div class="legend-row"><i class="dot green"></i>True state & path</div><div class="legend-row"><i class="dot amber"></i>Noisy GPS measurement</div><div class="legend-row"><i class="dot cyan"></i>Kalman state estimate</div><div class="legend-row"><i class="dot purple"></i>Predicted state · translucent marker</div><div class="legend-row"><i class="dot red"></i>Red disk · Mahalanobis d ≤ 2</div><div class="legend-row"><i class="dot" style="color:#fb923c"></i>Orange disk · d ≤ 4</div><div class="legend-row"><i class="dot" style="color:#facc15"></i>Yellow disk · d ≤ 6</div><p class="muted" style="font-size:10px">The translucent marker shows the prediction before GPS correction; the regions share its center. Track mode follows straights, sweeping turns and a tighter infield section.</p></div></details>
+<details open class="overlay"><summary data-help="tuning">Noise & playback</summary><div class="overlay-content"><label for="sliderQ"><span>Q scale <output id="qVal">0.050</output></span><input id="sliderQ" type="range" min="0.001" max="1" step="0.001" value="0.05"></label><label for="sliderR"><span>GPS variance R (m²) <output id="rVal">1.200</output></span><input id="sliderR" type="range" min="0.1" max="10" step="0.1" value="1.2"></label><label for="sliderSpeed"><span>Playback speed <output id="speedVal">1.0×</output></span><input id="sliderSpeed" type="range" min="0.2" max="6" step="0.2" value="1"></label><p class="muted" style="font-size:10px">dt = 0.1 s per cycle. At 1×, each phase takes 0.25 s for inspection. Q tunes the filter; R applies to the next GPS sample.</p></div></details>
+</div></section>
+<aside class="hud" aria-label="Live matrix dashboard"><h2>Live matrix math <span class="purple">HUD</span></h2><p class="muted" style="font-size:11px">Dots in track mode; triangles in manual/replay show direction of velocity, not body heading. At rest, markers are dots.</p><p class="muted" style="font-size:11px">State order: [pₓ, pᵧ, vₓ, vᵧ, aₓ, aᵧ]. Positions in meters. Values reflect the last completed phase.</p>
+<details open class="card"><summary data-help="driving">Driving & input recording</summary><div class="card-content">
+<label for="driveMode">Driving mode</label><select id="driveMode"><option value="track">Race track · automatic</option><option value="manual">Arrow keys · steerable</option><option value="replay" disabled>Recorded drive · replay</option></select>
+<p class="note">↑ forward throttle · ↓ brake / reverse · ← / → steer. In manual mode the filter receives the commanded acceleration. Click the scene before using arrows; sliders keep their keyboard controls.</p>
+<div class="drive-pad" aria-label="Driving controls"><button data-key="ArrowLeft" aria-label="Steer left">←</button><button data-key="ArrowUp" aria-label="Accelerate">↑</button><button data-key="ArrowDown" aria-label="Brake">↓</button><button data-key="ArrowRight" aria-label="Steer right">→</button></div>
+<div class="drive-actions"><button id="btnRecord">● Record new drive</button><button id="btnReplay" disabled>Replay recording</button></div>
+<p class="note">Signed speed: <output id="driveSpeed">6.0 m/s · forward</output></p><p id="recordStatus" class="note" role="status">No recording yet. Record starts a fresh manual drive.</p>
+<div class="formula" data-tex="u_k=[\text{throttle},\ \text{steer}]^T"></div><div id="inputMatrix"></div><p class="note">Inputs range from −1 to +1. Hold throttle −1 to brake, then reverse; steering −1 turns left. Sampled once per 0.1 s cycle.</p>
+<p class="note">Applied world acceleration [aₓ, aᵧ] (m/s²)</p><div id="controlMatrix"></div>
+<details class="sub"><summary data-help="history">Recorded u samples · latest / replay position</summary><table class="input-log"><thead><tr><th>t (s)</th><th>throttle</th><th>steer</th><th>aₓ</th><th>aᵧ</th></tr></thead><tbody id="inputLog"></tbody></table></details>
+</div></details>
+<details open class="card"><summary class="cyan" data-help="state">State estimate <span data-tex="\hat{x}"></span> · 6 × 1</summary><div class="card-content"><div id="stateMatrix"></div><div class="stats"><span>Position error</span><output id="positionError">0.00 m</output></div></div></details>
+<details open class="card"><summary data-help="prediction">Prediction · simple model</summary><div class="card-content"><div id="predictionFormula" class="formula"></div><div class="formula" data-tex="P^{-}_k=FP^{+}_{k-1}F^T+Q"></div>
+<details open class="sub"><summary data-help="transition">F · one axis at a time</summary><p id="modelExplanation" class="note"></p><div id="transitionMatrix" class="compact-matrix"></div><p class="note">Rows and columns: position, velocity, acceleration. The same 3 × 3 block is used independently for x and y; dt = 0.1 s.</p></details>
+<details open class="sub"><summary class="green" data-help="process">Q · how much we distrust the model</summary><p class="note">Q is chosen, not measured. The green slider scales the whole matrix. Edit variances and x/y correlation below, or enter all 36 values in the editor.</p><div id="processFormula" class="formula"></div><p class="note">Shown below: the x/y block for position, velocity, and acceleration. Columns are variance x, covariance xy, variance y. The editor also supports cross-stage entries in the full 6 × 6 matrix.</p><div id="processMatrix"></div><button id="btnEditQ" type="button">Edit Q…</button><p class="note">Equal x/y uncertainty with zero correlation produces circles. Unequal values stretch the regions; correlation tilts them. Changes apply on the next prediction.</p></details></div></details>
+<details open class="card"><summary class="amber" data-help="measurement">Measurement & correction</summary><div class="card-content"><div class="two-col"><div><small>GPS z · 2 × 1</small><div id="measurementMatrix"></div></div><div><small>Innovation y · 2 × 1</small><div id="innovationMatrix"></div></div></div><div class="formula" data-tex="y_k=z_k-H\hat{x}^{-}_k"></div><div class="formula" data-tex="K_k=P^{-}_kH^T(HP^{-}_kH^T+R)^{-1}"></div><div class="formula" data-tex="\hat{x}^{+}_k=\hat{x}^{-}_k+K_ky_k"></div><details open class="sub"><summary class="amber" data-help="sensor">Current GPS covariance R · 2 × 2</summary><div id="sensorMatrix"></div></details><details open class="sub"><summary class="purple" data-help="gain">Kalman gain K · full 6 × 2</summary><div id="gainMatrix"></div><p class="muted" style="font-size:10px">Columns correspond to GPS x and y.</p></details><details class="sub"><summary data-help="joseph">Covariance correction (Joseph form)</summary><div class="formula" data-tex="A=I-KH"></div><div class="formula" data-tex="P^{+}=AP^{-}A^T+KRK^T"></div></details></div></details>
+<details open class="card"><summary class="purple" data-help="covariance">Prediction covariance · 2 × 2</summary><div class="card-content"><div id="covarianceMatrix"></div><p class="muted" style="font-size:11px">Filled regions are centered on the latest prediction (the translucent marker): red d ≤ 2, orange d ≤ 4, yellow d ≤ 6. The cyan marker shows the current filter state after correction. Each boundary has constant Mahalanobis distance. They are ellipses in world coordinates and circles in whitened coordinates.</p><div class="formula" data-tex="d_M=\sqrt{(p-\hat{p}^{-})^T (P^{-}_{pos})^{-1}(p-\hat{p}^{-})}"></div><div style="display:flex;align-items:center;gap:12px;margin-top:10px"><svg viewBox="0 0 100 100" width="90" height="90" role="img" aria-label="Filled Mahalanobis distance disks: red 2, orange 4, yellow 6 in whitened coordinates" style="flex-shrink:0"><path d="M5 50H95M50 5V95" stroke="var(--border)"/><circle cx="50" cy="50" r="40" stroke="#facc15" fill="#facc15" fill-opacity="0.10"/><circle cx="50" cy="50" r="26.6667" stroke="#fb923c" fill="#fb923c" fill-opacity="0.14"/><circle cx="50" cy="50" r="13.3333" stroke="#ff454f" fill="#ff454f" fill-opacity="0.20"/><circle cx="50" cy="50" r="2" fill="var(--cyan)"/></svg><p class="note">Whitened coordinates: divide out the covariance and the boundaries become circles. The world view uses the actual covariance.</p></div></div></details>
+</aside></main>
+<dialog id="helpDialog" aria-labelledby="helpTitle"><div class="help-header"><h2 id="helpTitle"></h2><button id="btnCloseHelp" type="button" autofocus aria-label="Close explanation">✕ Close</button></div><div id="helpContent"></div><p class="help-cycle">The cycle: predict motion → grow uncertainty → receive GPS → calculate gain → correct the state and covariance.</p></dialog>
+<dialog id="qDialog" aria-labelledby="qEditorTitle"><div class="help-header"><h2 id="qEditorTitle">Edit process covariance Q</h2><button id="btnCloseQ" type="button" aria-label="Cancel Q editing">✕ Cancel</button></div><p class="note">These are the actual variances added per prediction, at the current green slider scale. Each x/y pair can have different uncertainty and correlation (−1 to +1). The filter requires a symmetric, positive semidefinite matrix.</p><div class="q-actions"><button id="btnQDefault" type="button">Simple default</button><button id="btnQEllipse" type="button">Elliptical example</button><button id="btnQAdvanced" type="button">Edit full 6 × 6 matrix</button></div><div id="qEditorSimple"><table class="q-table"><thead><tr><th>State pair</th><th>Variance x</th><th>Variance y</th><th>Correlation ρ</th></tr></thead><tbody id="qEditorRows"></tbody></table></div><div id="qEditorFull" hidden><label for="qFullMatrix" class="note">Full 6 × 6 Q as JSON. State order: [pₓ, pᵧ, vₓ, vᵧ, aₓ, aᵧ].</label><textarea id="qFullMatrix" spellcheck="false"></textarea></div><p id="qEditorError" role="alert"></p><p class="note">Off-diagonal covariance is ρ√(variance x × variance y). Editing Q changes uncertainty, not the physical track. The existing P evolves from the next prediction; Q is not the same matrix as P.</p><div class="q-actions"><button id="btnApplyQ" class="primary" type="button">Apply Q</button></div></dialog>
+<script src="vendor/three.min.js"></script><script src="vendor/OrbitControls.js"></script><script src="vendor/katex.min.js"></script>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const DT=0.1, PHASE_SECONDS=0.25, MAX_HISTORY=1200;
+const zeros=(r,c)=>Array.from({length:r},()=>Array(c).fill(0));
+const identity=n=>Array.from({length:n},(_,i)=>Array.from({length:n},(_,j)=>+(i===j)));
+const transpose=a=>a[0].map((_,j)=>a.map(row=>row[j]));
+const multiply=(a,b)=>a.map(row=>b[0].map((_,j)=>row.reduce((s,v,k)=>s+v*b[k][j],0)));
+const add=(a,b)=>a.map((row,i)=>row.map((v,j)=>v+b[i][j]));
+const subtract=(a,b)=>a.map((row,i)=>row.map((v,j)=>v-b[i][j]));
+function inverse2(a){const d=a[0][0]*a[1][1]-a[0][1]*a[1][0];if(!(d>0))throw Error('Innovation covariance is not positive definite.');return [[a[1][1]/d,-a[0][1]/d],[-a[1][0]/d,a[0][0]/d]];}
+function normal(){return Math.sqrt(-2*Math.log(Math.max(Number.MIN_VALUE,Math.random())))*Math.cos(2*Math.PI*Math.random());}
+const F=identity(6);F[0][2]=F[1][3]=F[2][4]=F[3][5]=DT;F[0][4]=F[1][5]=DT*DT/2;
+const H=[[1,0,0,0,0,0],[0,1,0,0,0,0]];
+let q=0.05,r=1.2,speed=1,running=true,elapsed=0,cycle=0,nextPhase='predict',lastPhase='ready',accumulator=0;
+let x,P,z,innovation,K,truth,measurementVariance,prediction;
+// A rounded, asymmetric polygon gives genuine straights between quadratic corners.
+const trackVertices=[[-22,0],[20,0],[30,12],[18,27],[25,40],[10,49],[-21,43],[-30,28],[-15,20],[-25,10]];
+const trackPoints=[];
+for(let i=0;i<trackVertices.length;i++){
+ const prev=trackVertices[(i+trackVertices.length-1)%trackVertices.length],v=trackVertices[i],next=trackVertices[(i+1)%trackVertices.length];
+ const toward=p=>{const d=Math.hypot(p[0]-v[0],p[1]-v[1]),f=Math.min(4,d*0.3)/d;return [v[0]+(p[0]-v[0])*f,v[1]+(p[1]-v[1])*f];};
+ const entry=toward(prev),exit=toward(next);
+ for(let j=0;j<=20;j++){const t=j/20;trackPoints.push([(1-t)**2*entry[0]+2*(1-t)*t*v[0]+t*t*exit[0],(1-t)**2*entry[1]+2*(1-t)*t*v[1]+t*t*exit[1]]);}
+}
+const trackDistances=[0];for(let i=1;i<=trackPoints.length;i++){const a=trackPoints[i-1],b=trackPoints[i%trackPoints.length];trackDistances.push(trackDistances[i-1]+Math.hypot(b[0]-a[0],b[1]-a[1]));}
+const trackLength=trackDistances.at(-1);
+function truthAt(t){const d=((6*t)%trackLength+trackLength)%trackLength;let i=0;while(trackDistances[i+1]<=d&&i<trackPoints.length-1)i++;const a=trackPoints[i],b=trackPoints[(i+1)%trackPoints.length],f=(d-trackDistances[i])/(trackDistances[i+1]-trackDistances[i]),angle=Math.atan2(b[1]-a[1],b[0]-a[0]);return {x:a[0]+(b[0]-a[0])*f,y:a[1]+(b[1]-a[1])*f,vx:6*Math.cos(angle),vy:6*Math.sin(angle),angle,speed:6};}
+let driveMode='track',recording=false,recordedFrames=[],replayIndex=0,currentInput=[0,0],appliedControl=[0,0];
+const keys=new Set();
+function defaultProcessShape(){const result=zeros(6,6);[DT**4/4,DT**4/4,DT**2,DT**2,1,1].forEach((v,i)=>result[i][i]=v);return result;}
+let processShape=defaultProcessShape();
+function processCovariance(){return processShape.map(row=>row.map(value=>value*q));}
+function processMatrixError(matrix){
+ if(!Array.isArray(matrix)||matrix.length!==6||matrix.some(row=>!Array.isArray(row)||row.length!==6||row.some(v=>typeof v!=='number'||!Number.isFinite(v))))return 'Enter a 6 × 6 array of finite numbers.';
+ const scale=Math.max(1,...matrix.flat().map(Math.abs)),tolerance=1e-12*scale,L=zeros(6,6);
+ for(let i=0;i<6;i++){if(matrix[i][i]<0)return 'Variances on the diagonal must be nonnegative.';for(let j=0;j<6;j++)if(Math.abs(matrix[i][j]-matrix[j][i])>tolerance)return 'Q must be symmetric: Q[i,j] must equal Q[j,i].';}
+ for(let i=0;i<6;i++)for(let j=0;j<=i;j++){let residual=(matrix[i][j]+matrix[j][i])/2;for(let k=0;k<j;k++)residual-=L[i][k]*L[j][k];if(i===j){if(residual < -tolerance)return 'Q must be positive semidefinite. Reduce correlations or check the full matrix.';L[i][j]=Math.sqrt(Math.max(0,residual));}else if(L[j][j]>0)L[i][j]=residual/L[j][j];else if(Math.abs(residual)>tolerance)return 'Q must be positive semidefinite. A zero-variance direction cannot have nonzero covariance.';}
+ return null;
+}
+function applyProcessCovariance(matrix){const error=processMatrixError(matrix);if(error)throw Error(error);const shape=matrix.map((row,i)=>row.map((value,j)=>(value/2+matrix[j][i]/2)/q));if(!shape.flat().every(Number.isFinite))throw Error('Q entries are too large at this scale. Use smaller values.');processShape=shape;}
+
+// Footprints include roofs; foliage/rocks reserve additional space around each building.
+const sceneryStructureBounds=Array.from({length:3},(_,i)=>({minX:52+i*9-5.3,maxX:52+i*9+5.3,minZ:9+i*13-5.3,maxZ:9+i*13+5.3}));
+function nearSceneryStructure(px,pz,clearance=0){return sceneryStructureBounds.some(b=>px>=b.minX-clearance&&px<=b.maxX+clearance&&pz>=b.minZ-clearance&&pz<=b.maxZ+clearance);}
+// A triangle depicts motion direction only, never an unestimated body heading.
+function motionMarkerPose(vx,vy,steerable){const moving=Number.isFinite(vx)&&Number.isFinite(vy)&&Math.hypot(vx,vy)>0.05;return steerable&&moving?{shape:'triangle',yaw:Math.atan2(vx,vy)}:{shape:'dot',yaw:0};}
+// Time-based camera easing is independent of the simulation frequency and frame rate.
+function followBlend(seconds){return -Math.expm1(-Math.max(0,seconds)/0.18);}
+// A circle of radius distance in whitened coordinates maps to this covariance ellipse.
+function mahalanobisOffset(covariance,phi,distance=2){
+ const a=covariance[0][0],b=(covariance[0][1]+covariance[1][0])/2,c=covariance[1][1];
+ const gap=Math.hypot(a-c,2*b),theta=0.5*Math.atan2(2*b,a-c);
+ const ex=distance*Math.sqrt(Math.max(0,(a+c+gap)/2))*Math.cos(phi),ey=distance*Math.sqrt(Math.max(0,(a+c-gap)/2))*Math.sin(phi);
+ return [ex*Math.cos(theta)-ey*Math.sin(theta),ex*Math.sin(theta)+ey*Math.cos(theta)];
+}
+function configureModel(){const controlled=driveMode!=='track';F[0][4]=F[1][5]=controlled?0:DT*DT/2;F[2][4]=F[3][5]=controlled?0:DT;F[4][4]=F[5][5]=controlled?0:1;}
+function drive(input){
+ const oldVx=truth.vx,oldVy=truth.vy,oldSpeed=truth.speed;
+ const newSpeed=Math.max(-6,Math.min(15,oldSpeed+input[0]*4*DT));
+ truth.angle+=input[1]*0.8*(newSpeed/6)*DT;
+ truth.speed=newSpeed;truth.vx=newSpeed*Math.cos(truth.angle);truth.vy=newSpeed*Math.sin(truth.angle);
+ appliedControl=[(truth.vx-oldVx)/DT,(truth.vy-oldVy)/DT];
+ truth.x+=(oldVx+truth.vx)*DT/2;truth.y+=(oldVy+truth.vy)*DT/2;
+}
+function resetState(){elapsed=0;cycle=0;nextPhase='predict';lastPhase='ready';accumulator=0;measurementVariance=r;truth=truthAt(0);x=[[truth.x],[truth.y],[truth.vx],[truth.vy],[0],[0]];P=identity(6);[2,2,1,1,0.5,0.5].forEach((v,i)=>P[i][i]=v);z=zeros(2,1);innovation=zeros(2,1);K=zeros(6,2);currentInput=[0,0];appliedControl=[0,0];replayIndex=0;keys.clear();configureModel();prediction={state:x.map(row=>row.slice()),covariance:P.map(row=>row.slice())};}
+function stepSimulation(){
+ if(nextPhase==='predict'){
+  let frame=null;
+  if(driveMode==='replay'){if(replayIndex>=recordedFrames.length){running=false;updateHUD();return;}frame=recordedFrames[replayIndex];q=frame.q;r=frame.r;processShape=(frame.processShape||defaultProcessShape()).map(row=>row.slice());currentInput=frame.input.slice();}
+  else currentInput=driveMode==='manual'?[Number(keys.has('ArrowUp'))-Number(keys.has('ArrowDown')),Number(keys.has('ArrowRight'))-Number(keys.has('ArrowLeft'))]:[0,0];
+  elapsed=Number((elapsed+DT).toFixed(10));
+  if(driveMode==='track'){truth=truthAt(elapsed);appliedControl=[0,0];}else drive(currentInput);
+  x=multiply(F,x);
+  if(driveMode!=='track')for(let axis=0;axis<2;axis++){x[axis][0]+=appliedControl[axis]*DT*DT/2;x[axis+2][0]+=appliedControl[axis]*DT;x[axis+4][0]=appliedControl[axis];}
+  P=add(multiply(multiply(F,P),transpose(F)),processCovariance());
+  prediction={state:x.map(row=>row.slice()),covariance:P.map(row=>row.slice())};
+  measurementVariance=r;z=[[truth.x+normal()*Math.sqrt(measurementVariance)],[truth.y+normal()*Math.sqrt(measurementVariance)]];
+  if(frame)z=frame.z.map(row=>row.slice());
+  if(recording)recordedFrames.push({t:elapsed,input:currentInput.slice(),acceleration:appliedControl.slice(),q,r,processShape:processShape.map(row=>row.slice()),z:z.map(row=>row.slice())});
+  if(driveMode==='replay')replayIndex++;
+  innovation=subtract(z,multiply(H,x));nextPhase='correct';lastPhase='prediction';
+  if(view){view.append('truth',truth.x,truth.y);view.append('gps',z[0][0],z[1][0]);}
+ }else{
+  innovation=subtract(z,multiply(H,x));const R=[[measurementVariance,0],[0,measurementVariance]];
+  const S=add(multiply(multiply(H,P),transpose(H)),R);
+  K=multiply(multiply(P,transpose(H)),inverse2(S));x=add(x,multiply(K,innovation));
+  const A=subtract(identity(6),multiply(K,H));
+  P=add(multiply(multiply(A,P),transpose(A)),multiply(multiply(K,R),transpose(K)));
+  for(let i=0;i<6;i++)for(let j=i+1;j<6;j++)P[i][j]=P[j][i]=(P[i][j]+P[j][i])/2;
+  nextPhase='predict';lastPhase='correction';cycle++;if(driveMode==='replay'&&replayIndex>=recordedFrames.length){running=false;}
+  if(view)view.append('estimate',x[0][0],x[1][0]);
+ }
+ updateHUD();if(view)view.update();
+}
+const rowNames=['pₓ','pᵧ','vₓ','vᵧ','aₓ','aᵧ'];
+function matrix(id,a,n=3,labels){const root=$(id);let grid=root.querySelector('.matrix');if(!grid){root.className='matrix-wrap';if(labels){const rows=document.createElement('div');rows.className='rows';labels.forEach(v=>{const cell=document.createElement('span');cell.textContent=v;rows.append(cell);});root.append(rows);}grid=document.createElement('div');grid.className='matrix';grid.style.gridTemplateColumns=`repeat(${a[0].length},auto)`;a.flat().forEach(()=>grid.append(document.createElement('span')));root.append(grid);}a.flat().forEach((v,i)=>{const value=Math.abs(v)<0.5*10**(-n)?0:v;grid.children[i].textContent=value.toFixed(n);});}
+function updateHUD(){matrix('stateMatrix',x,2,rowNames);matrix('transitionMatrix',[[F[0][0],F[0][2],F[0][4]],[F[2][0],F[2][2],F[2][4]],[F[4][0],F[4][2],F[4][4]]],3);updateProcessMatrix();updateDrivingHUD();matrix('measurementMatrix',z,2);matrix('innovationMatrix',innovation,2);matrix('sensorMatrix',[[measurementVariance,0],[0,measurementVariance]]);matrix('gainMatrix',K,3,rowNames);matrix('covarianceMatrix',prediction.covariance.slice(0,2).map(row=>row.slice(0,2)),3,['pₓ','pᵧ']);$('positionError').textContent=Math.hypot(x[0][0]-truth.x,x[1][0]-truth.y).toFixed(2)+' m';$('clock').textContent=`t = ${elapsed.toFixed(1)} s · cycle ${cycle}`;const badge=$('phaseBadge');badge.textContent=lastPhase==='ready'?'READY · Next: prediction':`${lastPhase.toUpperCase()} · Next: ${nextPhase==='predict'?'prediction':'correction'}`;badge.classList.toggle('correction',lastPhase==='correction');}
+let view=null;
+function initScene(){
+ if(!window.THREE||!THREE.OrbitControls)throw Error('The local Three.js scripts could not load. Keep the vendor folder beside index.html.');
+ const container=$('canvas-container'),scene=new THREE.Scene();const camera=new THREE.PerspectiveCamera(45,1,0.1,1000);
+ const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));container.append(renderer.domElement);renderer.domElement.setAttribute('aria-label','State markers, GPS path, and covariance regions');
+ const controls=new THREE.OrbitControls(camera,renderer.domElement);
+ controls.enableDamping=true;controls.dampingFactor=0.12;controls.rotateSpeed=0.65;controls.panSpeed=0.85;controls.zoomSpeed=0.7;controls.screenSpacePanning=false;
+ controls.minPolarAngle=0.02;controls.maxPolarAngle=Math.PI/2-0.12;controls.minDistance=6;controls.maxDistance=220;
+ controls.mouseButtons.RIGHT=THREE.MOUSE.ROTATE;
+ let followingCar=false;
+ function setFollowingCar(enabled){followingCar=enabled;$('btnFocusCar').setAttribute('aria-pressed',String(enabled));}
+ function setDragMode(mode){const pan=mode==='pan';controls.mouseButtons.LEFT=pan?THREE.MOUSE.PAN:THREE.MOUSE.ROTATE;controls.touches.ONE=pan?THREE.TOUCH.PAN:THREE.TOUCH.ROTATE;controls.touches.TWO=pan?THREE.TOUCH.DOLLY_ROTATE:THREE.TOUCH.DOLLY_PAN;$('btnPanMode').setAttribute('aria-pressed',String(pan));$('btnOrbitMode').setAttribute('aria-pressed',String(!pan));$('cameraHint').textContent=pan?'Drag to pan · Right-drag / Shift-drag to orbit · Scroll to zoom':'Drag / right-drag to orbit · Shift-drag to pan · Scroll to zoom';$('touchHint').textContent=pan?'Touch: one finger pans · two fingers zoom and orbit':'Touch: one finger orbits · two fingers zoom and pan';}
+ function moveView(target,position){controls.enableDamping=false;controls.update();controls.target.copy(target);camera.position.copy(position);controls.update();controls.enableDamping=true;}
+ function center(){setFollowingCar(false);moveView(new THREE.Vector3(0,0,24),new THREE.Vector3(15,72,86));}
+ function focusCar(){const target=new THREE.Vector3(truth.x,0,truth.y),offset=camera.position.clone().sub(controls.target).normalize().multiplyScalar(24);moveView(target,target.clone().add(offset));}
+ function zoom(factor){const offset=camera.position.clone().sub(controls.target);offset.setLength(THREE.MathUtils.clamp(offset.length()*factor,controls.minDistance,controls.maxDistance));moveView(controls.target.clone(),controls.target.clone().add(offset));}
+ function topView(){const target=controls.target.clone(),distance=camera.position.distanceTo(target);moveView(target,target.clone().add(new THREE.Vector3(0,Math.max(20,distance),0.05)));}
+ setDragMode('orbit');center();
+ $('btnPanMode').addEventListener('click',()=>setDragMode('pan'));$('btnOrbitMode').addEventListener('click',()=>setDragMode('orbit'));
+ $('btnZoomIn').addEventListener('click',()=>zoom(0.8));$('btnZoomOut').addEventListener('click',()=>zoom(1.25));$('btnFocusCar').addEventListener('click',()=>{setFollowingCar(!followingCar);if(followingCar)focusCar();});$('btnTopView').addEventListener('click',topView);$('btnResetView').addEventListener('click',center);
+ // Manual panning releases the lock; orbiting and zooming keep following active.
+ let pendingPan=null,pendingTouchPan=null;
+ renderer.domElement.addEventListener('pointerdown',event=>{if(event.pointerType==='touch')return;let action=event.button===0?controls.mouseButtons.LEFT:event.button===2?controls.mouseButtons.RIGHT:controls.mouseButtons.MIDDLE;if(event.ctrlKey||event.metaKey||event.shiftKey){if(action===THREE.MOUSE.PAN)action=THREE.MOUSE.ROTATE;else if(action===THREE.MOUSE.ROTATE)action=THREE.MOUSE.PAN;}pendingPan=action===THREE.MOUSE.PAN?{id:event.pointerId,x:event.clientX,y:event.clientY}:null;},true);
+ renderer.domElement.addEventListener('pointermove',event=>{if(pendingPan&&event.pointerId===pendingPan.id&&Math.hypot(event.clientX-pendingPan.x,event.clientY-pendingPan.y)>4){setFollowingCar(false);pendingPan=null;}},true);
+ for(const event of ['pointerup','pointercancel','lostpointercapture'])renderer.domElement.addEventListener(event,()=>pendingPan=null);
+ function touchCenter(touches){return [...touches].reduce((p,t)=>({x:p.x+t.clientX/touches.length,y:p.y+t.clientY/touches.length}),{x:0,y:0});}
+ renderer.domElement.addEventListener('touchstart',event=>{const panGesture=event.touches.length===1?controls.touches.ONE===THREE.TOUCH.PAN:event.touches.length===2&&controls.touches.TWO===THREE.TOUCH.DOLLY_PAN;pendingTouchPan=panGesture?touchCenter(event.touches):null;},{passive:true,capture:true});
+ renderer.domElement.addEventListener('touchmove',event=>{if(!pendingTouchPan)return;const center=touchCenter(event.touches);if(Math.hypot(center.x-pendingTouchPan.x,center.y-pendingTouchPan.y)>4){setFollowingCar(false);pendingTouchPan=null;}},{passive:true,capture:true});
+ for(const event of ['touchend','touchcancel'])renderer.domElement.addEventListener(event,()=>pendingTouchPan=null,{passive:true});
+ renderer.domElement.addEventListener('pointerdown',()=>renderer.domElement.classList.add('dragging'));for(const event of ['pointerup','pointercancel','lostpointercapture'])renderer.domElement.addEventListener(event,()=>renderer.domElement.classList.remove('dragging'));
+
+ scene.add(new THREE.HemisphereLight(0xffffff,0x334155,1.3));const sun=new THREE.DirectionalLight(0xffffff,0.9);sun.position.set(20,40,20);scene.add(sun);
+ const groundMaterial=new THREE.MeshBasicMaterial({color:0x132b25});const ground=new THREE.Mesh(new THREE.PlaneGeometry(600,600),groundMaterial);ground.rotation.x=-Math.PI/2;ground.position.set(0,-0.06,24);scene.add(ground);
+ let grid;function theme(light){scene.background=new THREE.Color(light?0xe1ecdf:0x101f27);scene.fog=new THREE.Fog(light?0xe1ecdf:0x101f27,100,255);groundMaterial.color.setHex(light?0xb1c69a:0x132b25);if(grid){scene.remove(grid);grid.geometry.dispose();if(Array.isArray(grid.material))grid.material.forEach(m=>m.dispose());else grid.material.dispose();}grid=new THREE.GridHelper(160,80,light?0xa4b4c7:0x334155,light?0xd1dbe7:0x1b293b);grid.position.z=24;grid.material.transparent=true;grid.material.opacity=0.28;scene.add(grid);}theme(false);
+ // Decorative world only: no picking handlers, collision bodies, or driving constraints.
+ const scenery=new THREE.Group();scenery.name='Decorative scenery';scene.add(scenery);
+ let scenerySeed=78231;function scenicRandom(){scenerySeed=(Math.imul(scenerySeed,1664525)+1013904223)>>>0;return scenerySeed/4294967296;}
+ const treeLocations=[];
+ for(let attempt=0;treeLocations.length<200&&attempt<4000;attempt++){
+  const px=(scenicRandom()-0.5)*220,pz=(scenicRandom()-0.5)*210+24;
+  // Keep the whole circuit and a generous 18 m buffer entirely clear.
+  if(nearSceneryStructure(px,pz,7)||(px/43)**2+((pz-24)/37)**2<1.5||trackPoints.some(p=>Math.hypot(p[0]-px,p[1]-pz)<18))continue;
+  treeLocations.push([px,pz,0.75+scenicRandom()*1.1]);
+ }
+ const trunks=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.24,0.36,2.7,6),new THREE.MeshStandardMaterial({color:0x73523b,roughness:1}),treeLocations.length);
+ const crowns=new THREE.InstancedMesh(new THREE.ConeGeometry(2,5,7),new THREE.MeshStandardMaterial({color:0x2e7250,flatShading:true,roughness:1}),treeLocations.length);
+ const upperCrowns=new THREE.InstancedMesh(new THREE.ConeGeometry(1.5,3.8,7),new THREE.MeshStandardMaterial({color:0x40825a,flatShading:true,roughness:1}),treeLocations.length);
+ const placement=new THREE.Object3D(),treeColor=new THREE.Color();
+ treeLocations.forEach(([px,pz,size],i)=>{placement.rotation.set(0,scenicRandom()*Math.PI,0);placement.scale.setScalar(size);placement.position.set(px,1.35*size,pz);placement.updateMatrix();trunks.setMatrixAt(i,placement.matrix);placement.position.y=4*size;placement.updateMatrix();crowns.setMatrixAt(i,placement.matrix);placement.position.y=6*size;placement.updateMatrix();upperCrowns.setMatrixAt(i,placement.matrix);treeColor.setHSL(0.34+scenicRandom()*0.08,0.28+scenicRandom()*0.2,0.22+scenicRandom()*0.12);crowns.setColorAt(i,treeColor);});
+ scenery.add(trunks,crowns,upperCrowns);
+ function scenicMesh(geometry,color,position,scale=[1,1,1]){const mesh=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial({color,roughness:0.95,flatShading:true}));mesh.position.set(...position);mesh.scale.set(...scale);scenery.add(mesh);return mesh;}
+ const rockGeometry=new THREE.DodecahedronGeometry(1,0);
+ for(let i=0;i<35;i++){const [px,pz]=treeLocations[(i*5)%treeLocations.length];const size=0.6+scenicRandom()*1.4;if(nearSceneryStructure(px+3,pz+2,size+1))continue;const rock=scenicMesh(rockGeometry,0x7a877d,[px+3,0.3,pz+2],[size,size*0.6,size*0.8]);rock.rotation.y=scenicRandom()*6;}
+ const hillGeometry=new THREE.ConeGeometry(1,1,9);
+ for(let i=0;i<13;i++){const angle=i/13*Math.PI*2;scenicMesh(hillGeometry,i%2?0x334f48:0x3d5d4c,[Math.cos(angle)*155,4,24+Math.sin(angle)*145],[20+scenicRandom()*18,17+scenicRandom()*18,20+scenicRandom()*15]);}
+ // Decorative paddock cabins, far beyond the road edge.
+ for(let i=0;i<3;i++){const px=52+i*9,pz=9+i*13;scenicMesh(new THREE.BoxGeometry(7,3.5,6),0xaaa18b,[px,1.75,pz]);const roof=scenicMesh(new THREE.ConeGeometry(5.3,2.4,4),0x965d45,[px,4.6,pz]);roof.rotation.y=Math.PI/4;scenicMesh(new THREE.BoxGeometry(2,1.5,0.1),0x344c59,[px,2,pz+3.05]);}
+ scenery.traverse(object=>{object.raycast=()=>{};});
+ function stateMarker(color,predicted=false){
+  const group=new THREE.Group();group.name=predicted?'Prediction marker':color===0x34d399?'True state marker':'Estimated state marker';
+  const material=new THREE.MeshBasicMaterial({color,transparent:predicted,opacity:predicted?0.6:1,side:THREE.DoubleSide,depthWrite:!predicted});
+  const dot=new THREE.Mesh(new THREE.CircleGeometry(0.42,32),material);dot.rotation.x=-Math.PI/2;dot.position.y=0.16;
+  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute([0,0.16,0.85,-0.5,0.16,-0.5,0.5,0.16,-0.5],3));
+  const triangle=new THREE.Mesh(geometry,material);group.add(dot,triangle);
+  if(predicted){for(const mesh of [dot,triangle]){const outline=new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry),new THREE.LineBasicMaterial({color:0xc084fc,transparent:true,opacity:0.95,depthWrite:false}));outline.renderOrder=6;mesh.add(outline);mesh.renderOrder=5;}}
+  group.userData.dot=dot;group.userData.triangle=triangle;scene.add(group);return group;
+ }
+ function placeMarker(marker,px,py,vx,vy){
+  const pose=motionMarkerPose(vx,vy,driveMode!=='track');marker.position.set(px,0,py);marker.rotation.y=pose.yaw;
+  marker.userData.triangle.visible=pose.shape==='triangle';marker.userData.dot.visible=pose.shape==='dot';
+ }
+ // A visible road ribbon and center line provide a route even before trails accumulate.
+ const roadPositions=[],roadIndices=[];
+ for(let i=0;i<=trackPoints.length;i++){const j=i%trackPoints.length,p=trackPoints[j],a=trackPoints[(j+trackPoints.length-1)%trackPoints.length],b=trackPoints[(j+1)%trackPoints.length],dx=b[0]-a[0],dy=b[1]-a[1],length=Math.hypot(dx,dy);for(const sign of [-1,1])roadPositions.push(p[0]-sign*dy/length*2.3,0.01,p[1]+sign*dx/length*2.3);if(i<trackPoints.length){const k=i*2;roadIndices.push(k,k+1,k+2,k+1,k+3,k+2);}}
+ const roadGeometry=new THREE.BufferGeometry();roadGeometry.setAttribute('position',new THREE.Float32BufferAttribute(roadPositions,3));roadGeometry.setIndex(roadIndices);const road=new THREE.Mesh(roadGeometry,new THREE.MeshBasicMaterial({color:0x344152,side:THREE.DoubleSide,transparent:true,opacity:0.7}));scene.add(road);
+ const centerGeometry=new THREE.BufferGeometry().setFromPoints(trackPoints.map(p=>new THREE.Vector3(p[0],0.03,p[1])));scene.add(new THREE.LineLoop(centerGeometry,new THREE.LineBasicMaterial({color:0x9cabb9,transparent:true,opacity:0.45})));
+ renderer.domElement.tabIndex=0;renderer.domElement.addEventListener('pointerdown',()=>renderer.domElement.focus());
+ const trueMarker=stateMarker(0x34d399),estMarker=stateMarker(0x22d3ee),predictionMarker=stateMarker(0xc084fc,true);
+ const gps=new THREE.Mesh(new THREE.SphereGeometry(0.32,16,12),new THREE.MeshBasicMaterial({color:0xfbbf24}));scene.add(gps);
+ const contourSegments=128;
+ // Draw complete disks largest first, with separate crisp boundaries above the fills.
+ const uncertaintyRegions=[{distance:6,color:0xfacc15,opacity:0.10},{distance:4,color:0xfb923c,opacity:0.14},{distance:2,color:0xff454f,opacity:0.20}].map((spec,index)=>{
+  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array((contourSegments+1)*3),3));
+  const indices=[];for(let i=0;i<contourSegments;i++)indices.push(0,i+1,(i+1)%contourSegments+1);geometry.setIndex(indices);
+  const disk=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({color:spec.color,transparent:true,opacity:spec.opacity,side:THREE.DoubleSide,depthWrite:false}));disk.name=`Mahalanobis filled disk ${spec.distance}`;disk.renderOrder=1+index;disk.frustumCulled=false;scene.add(disk);
+  const lineGeometry=new THREE.BufferGeometry();lineGeometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(contourSegments*3),3));
+  const boundary=new THREE.LineLoop(lineGeometry,new THREE.LineBasicMaterial({color:spec.color,transparent:true,opacity:0.95,depthWrite:false}));boundary.name=`Mahalanobis boundary ${spec.distance}`;boundary.renderOrder=4;boundary.frustumCulled=false;scene.add(boundary);
+  return {...spec,geometry,lineGeometry};
+ });
+ const paths={};for(const [name,color] of Object.entries({truth:0x34d399,gps:0xfbbf24,estimate:0x22d3ee})){const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(MAX_HISTORY*3),3));geometry.setDrawRange(0,0);const line=new THREE.Line(geometry,new THREE.LineBasicMaterial({color,transparent:true,opacity:name==='gps'?0.35:0.9}));line.frustumCulled=false;scene.add(line);paths[name]={geometry,points:[]};}
+ function append(name,px,py){const path=paths[name];path.points.push([px,0.08,py]);if(path.points.length>MAX_HISTORY)path.points.shift();const attr=path.geometry.attributes.position;path.points.forEach((p,i)=>attr.setXYZ(i,...p));attr.needsUpdate=true;path.geometry.setDrawRange(0,path.points.length);}
+ function update(){placeMarker(trueMarker,truth.x,truth.y,truth.vx,truth.vy);placeMarker(estMarker,x[0][0],x[1][0],x[2][0],x[3][0]);gps.position.set(z[0][0],0.5,z[1][0]);gps.visible=lastPhase!=='ready';const predicted=prediction.state,positionCovariance=prediction.covariance.slice(0,2).map(row=>row.slice(0,2));
+ function point(phi,distance=2){const offset=mahalanobisOffset(positionCovariance,phi,distance);return [predicted[0][0]+offset[0],0.12,predicted[1][0]+offset[1]];}
+ for(const region of uncertaintyRegions){
+  const diskPositions=region.geometry.attributes.position,linePositions=region.lineGeometry.attributes.position;
+  diskPositions.setXYZ(0,predicted[0][0],0.045,predicted[1][0]);
+  for(let i=0;i<contourSegments;i++){
+   const p=point(i/contourSegments*Math.PI*2,region.distance);
+   diskPositions.setXYZ(i+1,p[0],0.045,p[2]);linePositions.setXYZ(i,p[0],0.055,p[2]);
+  }
+  diskPositions.needsUpdate=true;linePositions.needsUpdate=true;
+ }
+ placeMarker(predictionMarker,predicted[0][0],predicted[1][0],predicted[2][0],predicted[3][0]);predictionMarker.visible=lastPhase!=='ready';}
+
+ const resize=new ResizeObserver(()=>{const w=container.clientWidth,h=container.clientHeight;if(!w||!h)return;camera.aspect=w/h;camera.zoom=Math.min(1,w/h/1.15);camera.updateProjectionMatrix();renderer.setSize(w,h);});resize.observe(container);
+ renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();running=false;syncPlayback();showError('The 3D graphics context was lost. Reload this page to restore the scene.');});
+ return {update,append,theme,center,clear(){Object.values(paths).forEach(p=>{p.points=[];p.geometry.setDrawRange(0,0);});},render(frameSeconds=1/60){controls.update();if(followingCar){const target=new THREE.Vector3(truth.x,0,truth.y),translation=target.sub(controls.target).multiplyScalar(followBlend(frameSeconds));camera.position.add(translation);controls.target.add(translation);}renderer.render(scene,camera);}};
+}
+function showError(message){$('error').textContent=message;$('error').hidden=false;}
+function syncPlayback(){$('btnPlayPause').textContent=running?'Pause':'Play';$('btnPlayPause').setAttribute('aria-pressed',String(running));}
+$('btnPlayPause').addEventListener('click',()=>{if(!running&&driveMode==='replay'&&replayIndex>=recordedFrames.length)restartSimulation();running=!running;accumulator=0;syncPlayback();});
+$('btnStep').addEventListener('click',()=>{running=false;accumulator=0;syncPlayback();stepSimulation();});
+$('btnReset').addEventListener('click',()=>{recording=false;restartSimulation();});
+$('btnCamera').addEventListener('click',()=>view?.center());
+$('btnThemeToggle').addEventListener('click',()=>{const light=document.body.classList.toggle('light');$('btnThemeToggle').textContent=light?'☀ Light':'☾ Dark';view?.theme(light);});
+for(const [id,output,setter,format] of [['sliderQ','qVal',v=>q=v,v=>v.toFixed(3)],['sliderR','rVal',v=>r=v,v=>v.toFixed(3)],['sliderSpeed','speedVal',v=>speed=v,v=>v.toFixed(1)+'×']]){$(id).addEventListener('input',e=>{const v=Number(e.target.value);setter(v);$(output).textContent=format(v);updateHUD();});}
+function tex(id,source){if(window.katex)katex.render(source,$(id),{throwOnError:false});else $(id).textContent=source;}
+function updateDrivingHUD(){
+ matrix('inputMatrix',currentInput.map(v=>[v]),0,['throttle','steer']);matrix('controlMatrix',appliedControl.map(v=>[v]),2,['aₓ','aᵧ']);
+ const controlled=driveMode!=='track';
+ $('driveSpeed').textContent=truth.speed.toFixed(1)+' m/s · '+(truth.speed < -0.01?'reverse':truth.speed > 0.01?'forward':'stopped');
+ tex('predictionFormula',controlled?'\\hat{x}^{-}_k=F\\hat{x}^{+}_{k-1}+B a_{\\mathrm{command}}':'\\hat{x}^{-}_k=F\\hat{x}^{+}_{k-1}');
+ tex('processFormula','Q=q\\,Q_{\\mathrm{shape}}');
+ $('modelExplanation').textContent=controlled?'With known inputs: p ← p + v·dt + ½a_command·dt²; v ← v + a_command·dt; a ← a_command. B per axis is [dt²/2, dt, 1]ᵀ.':'Without inputs: p ← p + v·dt + ½a·dt²; v ← v + a·dt; a stays the same.';
+ $('btnRecord').textContent=recording?'■ Stop recording':'● Record new drive';$('btnReplay').disabled=recording||!recordedFrames.length;
+ $('driveMode').querySelector('[value="replay"]').disabled=recording||!recordedFrames.length;
+ $('recordStatus').textContent=recording?`Recording · ${recordedFrames.length} samples · ${(recordedFrames.length*DT).toFixed(1)} s`:driveMode==='replay'?`Replay · ${replayIndex} / ${recordedFrames.length} samples${replayIndex===recordedFrames.length?' · finished':''}`:recordedFrames.length?`Saved in this page · ${recordedFrames.length} samples · ${(recordedFrames.length*DT).toFixed(1)} s`:'No recording yet. Record starts a fresh manual drive.';
+ const end=driveMode==='replay'?replayIndex:recordedFrames.length;
+ $('inputLog').replaceChildren(...recordedFrames.slice(Math.max(0,end-8),end).map(frame=>{const tr=document.createElement('tr');[frame.t.toFixed(1),...frame.input,...frame.acceleration.map(v=>v.toFixed(2))].forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.append(td);});return tr;}));
+ if(driveMode==='replay'){for(const [slider,value,label] of [['sliderQ',q,'qVal'],['sliderR',r,'rVal']]){$(slider).value=value;$(label).textContent=value.toFixed(3);}}
+ $('sliderQ').disabled=$('sliderR').disabled=$('btnEditQ').disabled=driveMode==='replay';
+ document.querySelectorAll('[data-key]').forEach(button=>button.classList.toggle('active',keys.has(button.dataset.key)));
+ syncPlayback();
+}
+function restartSimulation(){resetState();if(view){view.clear();view.update();}updateHUD();}
+function startReplay(){if(!recordedFrames.length)return;recording=false;driveMode='replay';$('driveMode').value='replay';restartSimulation();running=true;syncPlayback();}
+$('driveMode').addEventListener('change',e=>{recording=false;driveMode=e.target.value;if(driveMode==='replay')startReplay();else restartSimulation();});
+$('btnRecord').addEventListener('click',()=>{if(recording){running=false;if(nextPhase==='correct')stepSimulation();recording=false;updateHUD();return;}recordedFrames=[];recording=true;driveMode='manual';$('driveMode').value='manual';restartSimulation();running=true;syncPlayback();});
+$('btnReplay').addEventListener('click',startReplay);
+function releaseKeys(){keys.clear();document.querySelectorAll('[data-key]').forEach(button=>button.classList.remove('active'));}
+window.addEventListener('keydown',e=>{if($('helpDialog').open||$('qDialog').open)return;if(driveMode!=='manual'||!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)||e.target.closest('input,select,textarea,[contenteditable]'))return;e.preventDefault();keys.add(e.key);document.querySelectorAll('[data-key]').forEach(b=>b.classList.toggle('active',keys.has(b.dataset.key)));});
+window.addEventListener('keyup',e=>{keys.delete(e.key);document.querySelectorAll('[data-key]').forEach(b=>b.classList.toggle('active',keys.has(b.dataset.key)));});
+window.addEventListener('blur',releaseKeys);
+for(const button of document.querySelectorAll('[data-key]')){button.addEventListener('pointerdown',e=>{if(driveMode!=='manual')return;button.setPointerCapture(e.pointerId);keys.add(button.dataset.key);button.classList.add('active');});for(const event of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(event,()=>{keys.delete(button.dataset.key);button.classList.remove('active');});}
+function updateProcessMatrix(){const Q=processCovariance(),blocks=[0,2,4].map(i=>[Q[i][i],Q[i][i+1],Q[i+1][i+1]]);matrix('processMatrix',blocks,3,['position','velocity','accel.']);$('processMatrix').querySelectorAll('.matrix span').forEach((cell,index)=>{const value=blocks.flat()[index];cell.textContent=value===0?'0':Math.abs(value)<0.001||Math.abs(value)>=100?value.toExponential(1):value.toFixed(3);});}
+const qDialog=$('qDialog');let qEditorBase,qEditorAdvanced=false,qEditorWasRunning=false,qEditorPlaybackPending=false;
+for(const [index,name] of ['Position (m²)','Velocity ((m/s)²)','Acceleration ((m/s²)²)'].entries()){const row=document.createElement('tr'),heading=document.createElement('th');heading.textContent=name;row.append(heading);for(const [field,label] of [['x','variance x'],['y','variance y'],['rho','correlation']]){const cell=document.createElement('td'),input=document.createElement('input');input.id=`qEdit${index}${field}`;input.type='number';input.step='any';input.setAttribute('aria-label',name+' '+label);if(field==='rho'){input.min=-1;input.max=1;}else input.min=0;cell.append(input);row.append(cell);}$('qEditorRows').append(row);}
+function fillQEditor(matrix){qEditorBase=matrix.map(row=>row.slice());for(let block=0;block<3;block++){const i=2*block,a=matrix[i][i],b=matrix[i+1][i+1];$('qEdit'+block+'x').value=Number(a.toPrecision(12));$('qEdit'+block+'y').value=Number(b.toPrecision(12));$('qEdit'+block+'rho').value=a*b>0?Number((matrix[i][i+1]/Math.sqrt(a*b)).toPrecision(12)):0;}$('qFullMatrix').value=JSON.stringify(matrix,null,2);$('qEditorError').textContent='';}
+function readQEditor(){if(qEditorAdvanced){try{return JSON.parse($('qFullMatrix').value);}catch{throw Error('The full matrix must be valid JSON: six arrays of six numbers.');}}const matrix=qEditorBase.map(row=>row.slice());for(let block=0;block<3;block++){const inputs=['x','y','rho'].map(field=>$('qEdit'+block+field));if(inputs.some(input=>input.value.trim()===''||!input.validity.valid))throw Error('Fill every field. Variances must be nonnegative and correlations between −1 and +1.');const [a,b,rho]=inputs.map(input=>Number(input.value)),i=block*2;matrix[i][i]=a;matrix[i+1][i+1]=b;matrix[i][i+1]=matrix[i+1][i]=rho*Math.sqrt(a*b);}return matrix;}
+function qEditorMode(advanced){qEditorAdvanced=advanced;$('qEditorSimple').hidden=advanced;$('qEditorFull').hidden=!advanced;$('btnQAdvanced').textContent=advanced?'Use x/y pair editor':'Edit full 6 × 6 matrix';}
+$('btnEditQ').addEventListener('click',()=>{fillQEditor(processCovariance());qEditorMode(false);qEditorWasRunning=running;qEditorPlaybackPending=true;running=false;accumulator=0;releaseKeys();syncPlayback();qDialog.showModal();});
+function restoreQPlayback(){if(!qEditorPlaybackPending)return;qEditorPlaybackPending=false;releaseKeys();running=qEditorWasRunning;accumulator=0;lastTime=performance.now();syncPlayback();}
+function closeQEditor(){qDialog.close();restoreQPlayback();}
+qDialog.addEventListener('click',event=>{const r=qDialog.getBoundingClientRect();if(event.target===qDialog&&(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom))closeQEditor();});
+$('btnCloseQ').addEventListener('click',closeQEditor);qDialog.addEventListener('cancel',event=>{event.preventDefault();closeQEditor();});qDialog.addEventListener('close',()=>{if(!qDialog.open)restoreQPlayback();});
+$('btnQAdvanced').addEventListener('click',()=>{try{const matrix=readQEditor(),error=processMatrixError(matrix);if(error)throw Error(error);fillQEditor(matrix);qEditorMode(!qEditorAdvanced);}catch(error){$('qEditorError').textContent=error.message;}});
+$('btnQDefault').addEventListener('click',()=>fillQEditor(defaultProcessShape().map(row=>row.map(v=>v*q))));
+$('btnQEllipse').addEventListener('click',()=>{const matrix=zeros(6,6);for(const [index,scales] of [[0,[0.2,4]],[2,[0.5,3]],[4,[1,8]]]){const a=scales[0]*q,b=scales[1]*q;matrix[index][index]=a;matrix[index+1][index+1]=b;matrix[index][index+1]=matrix[index+1][index]=0.65*Math.sqrt(a*b);}fillQEditor(matrix);});
+$('btnApplyQ').addEventListener('click',()=>{try{applyProcessCovariance(readQEditor());updateHUD();closeQEditor();}catch(error){$('qEditorError').textContent=error.message;}});
+// Each collapsible has an explanation tailored to the data/model it contains.
+const sectionHelp={
+ legend:{title:'Reading the world',role:'The scene compares what really happened, what GPS reported, and what the filter believes. Ground truth is only a reference; it is not a GPS measurement.',details:'Green is the real car, amber is noisy GPS, and cyan is the filter state. The translucent marker is the latest prediction, saved before the GPS correction. Red, orange, and yellow regions share that prediction center and show Mahalanobis distances 2, 4, and 6.',example:'The prediction marker and regions stay fixed during correction so you can see how the cyan estimate moves after GPS arrives.'},
+ tuning:{title:'What the sliders change',comparisons:[
+  {name:'Q · model noise',color:'var(--green)',low:'Smoother estimate, but slower to adjust to changes in motion.',high:'Estimate reacts faster to GPS, but may look jitterier.'},
+  {name:'R · GPS noise',color:'var(--amber)',low:'Less GPS scatter. The filter trusts each reading more.',high:'More GPS scatter. The filter trusts each reading less.'},
+  {name:'Playback speed',color:'var(--cyan)',low:'Slower animation. More time to inspect each step.',high:'Faster animation. The simulation calculations stay the same.'}
+ ]},
+ driving:{title:'Control input u',role:'A known input helps the filter predict motion before the next GPS reading. Here u is a 2 × 1 vector containing throttle and steering, each between −1 and +1.',details:'Throttle changes signed speed; holding negative throttle brakes and then reverses. Steering changes the car heading. These inputs are converted into a commanded world acceleration [aₓ, aᵧ] before entering the linear filter. They are not multiplied directly into world position.',example:'In manual and replay modes, the per-axis input column is B = [dt²/2, dt, 1]ᵀ. It applies commanded acceleration to position, velocity, and acceleration. Automatic track mode instead predicts constant acceleration without a control input.'},
+ history:{title:'Recorded input samples',role:'This table connects a driving action to the exact simulation time it affected. Each row is one prediction cycle, 0.1 s after the previous row.',details:'The first two input values are raw throttle and steering. The last two are the resulting world accelerations in m/s². The table shows recent samples while recording, or samples up to the current replay position.',example:'A recording also stores noise settings and the actual GPS samples. Replay therefore reproduces the same drive and filter result rather than generating a different noisy observation sequence. Reloading the page clears the recording.'},
+ state:{title:'State estimate x̂ · 6 × 1',role:'The state vector is the filter’s best current description of the car: [pₓ, pᵧ, vₓ, vᵧ, aₓ, aᵧ]ᵀ. Units are meters, meters per second, and meters per second squared.',details:'Prediction advances these values using the motion model. Correction adjusts them using GPS and the Kalman gain. GPS measures only position, but correlations in the covariance let it also improve velocity and acceleration.',example:'Direction in manual/replay mode comes only from this vector’s velocity: atan2(vᵧ, vₓ). Body heading is not estimated; at near-zero speed a dot avoids implying a direction. During prediction this vector matches the prediction marker. After correction it drives the cyan marker; the prediction marker keeps the earlier prediction for comparison. Position error compares the estimate with ground truth for teaching only.'},
+ prediction:{title:'The prediction step',role:'Prediction asks: where should the car be now, based on the last estimate, elapsed time, and any known input? It happens before the new GPS measurement is used.',details:'The state equation is x̂⁻ = F x̂⁺, with an additional B a_command term in manual/replay mode. The covariance equation is P⁻ = F P⁺ Fᵀ + Q: move the existing uncertainty through the same model, then add model uncertainty.',example:'A prediction advances the simulation by dt = 0.1 s. The following correction uses the same timestamp. The translucent marker and colored regions preserve this prior prediction and covariance even after correction.'},
+ transition:{title:'Transition matrix F',role:'F maps the previous state into the next predicted state. Instead of a wide 6 × 6 matrix, the HUD shows the identical 3 × 3 block used independently for each axis, ordered [position, velocity, acceleration].',details:'In track mode the rows are [1, dt, dt²/2], [0, 1, dt], and [0, 0, 1]. That means p_new = p + v·dt + ½a·dt², v_new = v + a·dt, and acceleration stays constant.',example:'In manual/replay mode the acceleration column and final row of F are zero: F carries position and velocity forward, while B a_command supplies the new acceleration and its effects. With dt = 0.1, the familiar coefficients are 1, 0.1, and 0.005.'},
+ process:{title:'Process covariance Q',role:'Q represents the motion model’s imperfections: an unknown turn, changing acceleration, or other motion the simple predictor cannot fully describe. It is a tuning choice, not something GPS measures.',details:'The default 6 × 6 Q is diagonal, with per-axis variances q·dt⁴/4 for position, q·dt² for velocity, and q for acceleration. Edit Q to change x/y variances and correlation, or enter a full symmetric positive semidefinite matrix as JSON. The green slider scales your edited matrix. The compact display shows the x/y blocks as [variance x, covariance xy, variance y].',example:'Q is added on every prediction. Increasing q grows the predicted covariance, usually increasing Kalman gain and letting GPS change the estimate more strongly. Too little Q can make the filter slow to follow turns.'},
+ measurement:{title:'GPS measurement and correction',role:'The GPS vector z is 2 × 1: measured x and y position. The innovation y = z − H x̂⁻ is the difference between that reading and the predicted position.',details:'H is a 2 × 6 selector: its first row picks pₓ and its second row picks pᵧ. The filter forms innovation covariance S = H P⁻ Hᵀ + R, calculates K, and corrects the full state with x̂⁺ = x̂⁻ + K y.',example:'A large innovation can mean a real change in motion or a noisy reading. P⁻ and R determine how much of that mismatch should move the estimate. Correction does not advance the car or simulation clock.'},
+ sensor:{title:'Sensor covariance R · 2 × 2',role:'R tells the filter how uncertain a GPS reading is. This app assumes independent x/y measurement errors with the same variance, so R = diag(r, r).',details:'The diagonal entries have units m²; the off-diagonal zeros mean there is no assumed x/y error correlation. The simulated GPS adds Gaussian noise with standard deviation √r, not r.',example:'Larger R generally reduces the gain and the impact of a single GPS reading. The display belongs to the current GPS sample: changing the slider affects the next sample, so a pending correction keeps the correct matching R.'},
+ gain:{title:'Kalman gain K · 6 × 2',role:'K turns the two GPS position residuals into corrections for all six state entries. Each row belongs to a state variable; each column belongs to the x or y GPS innovation.',details:'K = P⁻ Hᵀ (H P⁻ Hᵀ + R)⁻¹. It balances predicted uncertainty against measurement noise. The gain is calculated at correction time, so during prediction the displayed K is still the last correction’s gain.',example:'Position gain near 1 means a strong pull toward GPS; near 0 means a weak pull. Velocity and acceleration rows have different units and are not percentages. The full matrix includes zeros because the two axes are independent in this model.'},
+ joseph:{title:'Covariance correction · Joseph form',role:'Correcting the state must also update how uncertain the filter is. Joseph form performs that covariance update while helping preserve symmetry and positive definiteness in finite-precision arithmetic.',details:'Let A = I − K H, where I is the 6 × 6 identity. Then P⁺ = A P⁻ Aᵀ + K R Kᵀ. The first term propagates the remaining prediction uncertainty; the second accounts for measurement noise entering through the correction.',example:'This is the corrected covariance used for the next cycle. The world regions deliberately keep P⁻ from before correction so the prediction remains visible for comparison.'},
+ covariance:{title:'Prediction covariance P⁻ and the regions',role:'P describes uncertainty and correlations in the six state entries. This panel shows only the 2 × 2 position block of the latest predicted P⁻, matching the regions around the prediction marker.',details:'Diagonal entries are position variances in m². The off-diagonal is shared x/y covariance; it can tilt an ellipse. Initially, x and y use equal independent noise and identical dynamics, so their covariance is proportional to the identity and the level sets really are circles on the map. Unequal noise and correlation in edited Q produce ellipses as P evolves. The eigenvectors set the principal directions, and the square roots of the eigenvalues give uncertainty scale along those directions.',example:'Mahalanobis distance satisfies d² = (p − predicted_mean)ᵀ (P⁻_pos)⁻¹ (p − predicted_mean). Red, orange, and yellow boundaries use d = 2, 4, and 6, so their principal radii are 2, 4, and 6 times the covariance scales. Whitening removes those scales and turns the ellipses into circles.'}
+};
+const helpDialog=$('helpDialog');let helpWasRunning=false,helpPlaybackPending=false;
+function openSectionHelp(key){
+ const help=sectionHelp[key];if(!help)return;$('helpTitle').textContent=help.title;$('helpContent').replaceChildren();
+ helpDialog.querySelector('.help-cycle').hidden=Boolean(help.comparisons);
+ if(help.comparisons){
+  const table=document.createElement('table');table.className='slider-help';table.setAttribute('aria-label','Low and high slider values');
+  const head=document.createElement('thead'),headingRow=document.createElement('tr');for(const label of ['Parameter','Low','High']){const cell=document.createElement('th');cell.scope='col';cell.textContent=label;headingRow.append(cell);}head.append(headingRow);table.append(head);
+  const body=document.createElement('tbody');for(const item of help.comparisons){const row=document.createElement('tr'),name=document.createElement('th');name.scope='row';name.textContent=item.name;name.style.color=item.color;row.append(name);for(const value of [item.low,item.high]){const cell=document.createElement('td');cell.textContent=value;row.append(cell);}body.append(row);}table.append(body);$('helpContent').append(table);
+ }else{
+  for(const [heading,body] of [['Its role in the filter',help.role],['What this app shows',help.details],['How to read it',help.example]]){const title=document.createElement('h3');title.textContent=heading;const paragraph=document.createElement('p');paragraph.textContent=body;$('helpContent').append(title,paragraph);}
+ }
+ helpWasRunning=running;helpPlaybackPending=true;running=false;accumulator=0;releaseKeys();syncPlayback();helpDialog.showModal();helpDialog.scrollTop=0;
+}
+document.querySelectorAll('summary[data-help]').forEach(summary=>{const button=document.createElement('button');button.type='button';button.className='help-button';button.textContent='?';button.setAttribute('aria-label','Explain '+sectionHelp[summary.dataset.help].title);button.setAttribute('aria-haspopup','dialog');button.setAttribute('aria-controls','helpDialog');button.title='Explain this section';button.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();openSectionHelp(summary.dataset.help);});summary.append(button);});
+function restoreHelpPlayback(){if(!helpPlaybackPending)return;helpPlaybackPending=false;releaseKeys();running=helpWasRunning;accumulator=0;lastTime=performance.now();syncPlayback();}
+function closeSectionHelp(){helpDialog.close();restoreHelpPlayback();}
+$('btnCloseHelp').addEventListener('click',closeSectionHelp);
+helpDialog.addEventListener('cancel',event=>{event.preventDefault();closeSectionHelp();});
+helpDialog.addEventListener('click',event=>{const rect=helpDialog.getBoundingClientRect();if(event.target===helpDialog&&(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom))closeSectionHelp();});
+helpDialog.addEventListener('close',()=>{if(!helpDialog.open)restoreHelpPlayback();});
+document.querySelectorAll('[data-tex]').forEach(el=>{if(window.katex)katex.render(el.dataset.tex,el,{throwOnError:false});else el.textContent=el.dataset.tex;});
+resetState();updateHUD();syncPlayback();try{view=initScene();view.update();}catch(error){showError('Unable to start the 3D view: '+error.message);}
+let lastTime=performance.now();document.addEventListener('visibilitychange',()=>{lastTime=performance.now();accumulator=0;releaseKeys();});
+function animate(now){const delta=Math.min((now-lastTime)/1000,0.25);lastTime=now;if(running&&!document.hidden){accumulator+=delta*speed;while(running&&accumulator>=PHASE_SECONDS){stepSimulation();accumulator-=PHASE_SECONDS;}}view?.render(delta);requestAnimationFrame(animate);}requestAnimationFrame(animate);
+</script>
+</body>
+</html>
